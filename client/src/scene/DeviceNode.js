@@ -61,7 +61,7 @@ export class DeviceNode {
 
     this._selected = false;
     this._pulsePhase = Math.random() * Math.PI * 2;
-    this._updateVisitRing(device.visitCount);
+    this._updateVisitRing(device.entryCount ?? device.visitCount);
   }
 
   _sizeFromSignal(device) {
@@ -79,7 +79,7 @@ export class DeviceNode {
     this.device = device;
     const newSize = this._sizeFromSignal(device);
     this.mesh.scale.setScalar(newSize / 0.35);
-    this._updateVisitRing(device.visitCount);
+    this._updateVisitRing(device.entryCount ?? device.visitCount);
 
     const intensity = Math.min(1, device.txRate / 500);
     this.mesh.material.emissiveIntensity = 0.4 + intensity * 0.8;

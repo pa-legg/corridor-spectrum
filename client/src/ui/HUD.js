@@ -31,6 +31,7 @@ export class HUD {
       total: document.getElementById('stat-total'),
       wifi: document.getElementById('stat-wifi'),
       bt: document.getElementById('stat-bt'),
+      entries: document.getElementById('stat-entries'),
       packets: document.getElementById('stat-packets'),
     };
   }
@@ -40,8 +41,9 @@ export class HUD {
     this.els.total.textContent = stats.totalDevices;
     this.els.wifi.textContent = stats.wifiCount;
     this.els.bt.textContent = stats.bluetoothCount;
+    this.els.entries.textContent = (stats.totalEntries ?? 0).toLocaleString();
     this.els.packets.textContent = stats.totalPackets.toLocaleString();
-    this.els.mode.textContent = mode === 'simulation' ? 'DEMO MODE' : 'LIVE SCAN';
+    this.els.mode.textContent = mode === 'simulation' ? 'DEMO MODE' : 'LIVE — RASPBERRY PI';
   }
 }
 
@@ -76,7 +78,7 @@ export class DevicePanel {
     this.els.vendor.textContent = device.vendor;
     this.els.rssi.textContent = `${device.rssi} dBm`;
     this.els.signal.style.width = `${rssiToPercent(device.rssi)}%`;
-    this.els.visits.textContent = device.visitCount;
+    this.els.visits.textContent = device.entryCount ?? device.visitCount;
     this.els.bytes.textContent = formatBytes(device.bytesTransmitted);
     this.els.packets.textContent = device.packetsTransmitted.toLocaleString();
     this.els.rate.textContent = formatRate(device.txRate);
@@ -92,7 +94,7 @@ export class DevicePanel {
         const duration = v.exitedAt
           ? formatDuration(v.exitedAt - v.enteredAt)
           : formatDuration(Date.now() - v.enteredAt);
-        return `<li>Visit · ${entered} → ${exited} (${duration})</li>`;
+        return `<li>Entry · ${entered} → ${exited} (${duration})</li>`;
       })
       .join('');
 

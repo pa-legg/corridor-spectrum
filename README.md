@@ -1,90 +1,108 @@
 # Corridor Spectrum
 
-An interactive 3D wireless traffic monitor designed as a corridor display artefact for a university cyber security department. Devices detected via WiFi and Bluetooth appear as glowing nodes in a three-dimensional corridor environment, with particle streams showing data transmission and a detail panel revealing visit frequency and transmission volume.
+An interactive 3D wireless traffic monitor designed as a corridor display artefact for a university cyber security department. Devices detected via WiFi and Bluetooth appear as glowing nodes in a three-dimensional corridor environment, with particle streams showing data transmission and a detail panel revealing how often each device has entered the monitoring environment.
 
 ![Corridor Spectrum](https://img.shields.io/badge/Three.js-3D%20Visualisation-00d4ff)
 
 ## Features
 
-- **3D corridor environment** — Built with Three.js, featuring bloom post-processing, orbital camera controls, and an ambient cyber-aesthetic
-- **Real-time device tracking** — WebSocket stream updates the visualisation every 2 seconds
-- **WiFi & Bluetooth detection** — Uses system tools (`nmcli`, `bluetoothctl`) when available; falls back to realistic simulation for demos and installations without dedicated hardware
-- **Transmission visualisation** — Particle streams flow from each device to a central sensor; pulse intensity reflects live TX rate
-- **Visit tracking** — Records how often each device enters the environment (5-minute gap = new visit)
-- **Interactive inspection** — Click any device to reveal signal strength, packet count, data volume, TX rate, and visit history
+- **3D corridor environment** — Three.js with bloom post-processing and orbital camera controls
+- **Raspberry Pi hardware scanning** — WiFi via `iw` / probe requests, Bluetooth via `bluetoothctl` / `btmgmt` / `hcitool`
+- **Environment entry tracking** — Records how many times each device has entered the monitoring zone, persisted to disk across reboots
+- **Transmission visualisation** — Particle streams from devices to a central sensor; intensity reflects observed packet/probe activity
+- **Interactive inspection** — Click or tap a device for signal strength, entry count, packets, and entry history
 
-## Quick Start
+## Quick Start (development)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open **http://localhost:5173** in a full-screen browser on your corridor display.
+Open **http://localhost:5173**. Use `SCAN_MODE=simulation` for demo data without hardware.
 
-For production:
+## Raspberry Pi Installation
+
+On a Raspberry Pi running Raspberry Pi OS:
 
 ```bash
-npm run build
-npm start
+git clone <repo-url> corridor-spectrum
+cd corridor-spectrum
+bash scripts/install-pi.sh
+sudo systemctl start corridor-spectrum
+chromium-browser --kiosk http://localhost:3000
 ```
 
-Serves the built client and API on **http://localhost:3000**.
+The install script sets up BlueZ, `iw`, `tcpdump`, builds the app, and installs a systemd service running in **hardware mode** by default.
+
+### What the Pi scans
+
+| Source | Tool | Detects |
+|--------|------|---------|
+| WiFi clients | `tcpdump` on monitor interface (`MONITOR_IFACE`) | Phones/laptops broadcasting probe requests |
+| WiFi networks | `iw dev wlan0 scan` | Nearby access points |
+| Bluetooth | `btmgmt` / `bluetoothctl` / `hcitool` | Phones, headphones, wearables, BLE beacons |
+
+### Probe-request monitoring (recommended)
+
+Built-in Pi WiFi is usually connected to your network, so for detecting **passing devices** add a USB WiFi adapter in monitor mode:
+
+```bash
+# Replace wlan1 with your USB adapter
+sudo iw dev wlan1 interface add mon0 type monitor
+sudo ip link set mon0 up
+
+# Add to systemd service:
+# Environment=MONITOR_IFACE=mon0
+sudo systemctl restart corridor-spectrum
+```
+
+### Entry counting
+
+A device is counted as **entering the environment** when:
+1. It is first discovered, or
+2. It returns after being absent for longer than `VISIT_GAP_MS` (default: 2 minutes)
+
+Devices are marked absent only after `ABSENCE_THRESHOLD` consecutive missed scans (default: 4), preventing flicker between scan cycles.
+
+Entry counts are saved to `data/registry.json` and survive reboots.
 
 ## Configuration
 
-| Environment Variable | Default | Description |
-|---------------------|---------|-------------|
-| `PORT` | `3000` | Server port |
-| `SCAN_MODE` | `auto` | `auto`, `simulation`, or `hardware` |
-| `SCAN_INTERVAL` | `2000` | Scan interval in milliseconds |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SCAN_MODE` | `auto` | `hardware`, `simulation`, or `auto` (Pi defaults to hardware) |
+| `SCAN_INTERVAL` | `2000` | Milliseconds between scan cycles |
+| `WIFI_IFACE` | `wlan0` | WiFi interface for `iw` scans |
+| `HCI_IFACE` | `hci0` | Bluetooth adapter |
+| `MONITOR_IFACE` | _(empty)_ | Monitor interface for probe-request capture (e.g. `mon0`) |
+| `VISIT_GAP_MS` | `120000` | Absence duration before a return counts as a new entry |
+| `ABSENCE_THRESHOLD` | `4` | Missed scans before a device is marked absent |
+| `DATA_FILE` | `./data/registry.json` | Persistent entry/packet storage |
 
-### Scan Modes
+## Production
 
-- **`auto`** — Attempts hardware scanning; uses simulation if no devices are found
-- **`simulation`** — Always uses simulated devices (ideal for demos and development)
-- **`hardware`** — Forces hardware scanning only (requires Linux with `nmcli` and/or `bluetoothctl`)
-
-## Hardware Setup (Production Installation)
-
-For a live corridor installation on Linux:
-
-1. Install NetworkManager and BlueZ:
-   ```bash
-   sudo apt install network-manager bluez
-   ```
-
-2. Ensure the display machine has WiFi and Bluetooth adapters enabled.
-
-3. Run in hardware mode:
-   ```bash
-   SCAN_MODE=hardware npm start
-   ```
-
-4. For passive WiFi monitoring (probe requests, more devices), a dedicated monitor-mode adapter with tools like `airodump-ng` can be integrated — the current implementation uses active scans via `nmcli` which is suitable for most display scenarios.
+```bash
+npm run build
+SCAN_MODE=hardware npm start
+```
 
 ## Architecture
 
 ```
-┌─────────────────┐     WebSocket      ┌──────────────────┐
-│  Three.js       │◄──────────────────►│  Node.js Server  │
-│  3D Client      │                    │  Express + ws    │
-└─────────────────┘                    └────────┬─────────┘
-                                                │
-                                       ┌────────▼─────────┐
-                                       │  Scanner Module  │
-                                       │  nmcli / btctl   │
-                                       │  or Simulation   │
-                                       └──────────────────┘
+┌─────────────────┐     WebSocket      ┌──────────────────────────┐
+│  Three.js       │◄──────────────────►│  Node.js (Raspberry Pi)  │
+│  3D Client      │                    │  Express + ws            │
+└─────────────────┘                    └────────────┬─────────────┘
+                                                    │
+                     ┌──────────────────────────────┼──────────────────────────────┐
+                     │                              │                              │
+              ┌──────▼──────┐              ┌────────▼────────┐           ┌────────▼────────┐
+              │ iw / tcpdump │              │ bluetoothctl    │           │ registry.json   │
+              │ WiFi scan    │              │ btmgmt / hcitool│           │ entry persistence│
+              └─────────────┘              └─────────────────┘           └─────────────────┘
 ```
-
-## Display Tips
-
-- Run the browser in kiosk/full-screen mode (`F11` or `chromium --kiosk`)
-- Use a large monitor or projector in a corridor-facing orientation
-- The visualisation is designed for dark environments — dim ambient lighting enhances the bloom effect
-- Click devices on touchscreens to inspect transmission profiles
 
 ## University Cyber Security Department
 
-This installation is intended to raise awareness of the invisible radio spectrum surrounding us — every phone, laptop, wearable, and IoT device continuously broadcasts its presence. Corridor Spectrum makes that hidden layer visible.
+This installation makes the invisible radio environment visible — every phone, laptop, wearable, and IoT device continuously announces its presence. Corridor Spectrum reveals that hidden layer and records how often devices pass through your monitoring space.
