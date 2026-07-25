@@ -1,0 +1,26 @@
+[Unit]
+Description=Corridor Spectrum Wireless Monitor
+After=network-online.target bluetooth.service
+Wants=network-online.target bluetooth.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/opt/corridor-spectrum
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=SCAN_MODE=hardware
+Environment=SCAN_INTERVAL=2000
+Environment=WIFI_IFACE=wlan0
+Environment=HCI_IFACE=hci0
+Environment=DATA_FILE=/opt/corridor-spectrum/data/registry.json
+Environment=VISIT_GAP_MS=120000
+Environment=ABSENCE_THRESHOLD=4
+# Uncomment after setting up monitor mode for probe-request capture:
+# Environment=MONITOR_IFACE=mon0
+ExecStart=/usr/bin/node /opt/corridor-spectrum/server/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

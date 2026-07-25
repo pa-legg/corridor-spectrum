@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Corridor Spectrum — Wireless Traffic Monitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles/main.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene-canvas"></canvas>
+
+      <header class="hud-header">
+        <div class="brand">
+          <span class="brand-icon">◈</span>
+          <div>
+            <h1>Corridor Spectrum</h1>
+            <p class="subtitle">Wireless &amp; Bluetooth Environment Monitor</p>
+          </div>
+        </div>
+        <div class="mode-badge" id="mode-badge">INITIALIZING</div>
+      </header>
+
+      <aside class="stats-panel" id="stats-panel">
+        <div class="stat">
+          <span class="stat-value" id="stat-present">0</span>
+          <span class="stat-label">Present</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-total">0</span>
+          <span class="stat-label">Total Seen</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-wifi">0</span>
+          <span class="stat-label">WiFi</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-bt">0</span>
+          <span class="stat-label">Bluetooth</span>
+        </div>
+        <div class="stat wide">
+          <span class="stat-value" id="stat-entries">0</span>
+          <span class="stat-label">Environment Entries</span>
+        </div>
+        <div class="stat wide">
+          <span class="stat-value" id="stat-packets">0</span>
+          <span class="stat-label">Packets Observed</span>
+        </div>
+      </aside>
+
+      <aside class="device-panel hidden" id="device-panel">
+        <button class="panel-close" id="panel-close" aria-label="Close">×</button>
+        <div class="panel-type" id="panel-type">WIFI</div>
+        <h2 id="panel-name">Device Name</h2>
+        <p class="panel-mac" id="panel-mac">00:00:00:00:00:00</p>
+        <p class="panel-vendor" id="panel-vendor">Vendor</p>
+
+        <div class="panel-metrics">
+          <div class="metric">
+            <span class="metric-label">Signal</span>
+            <div class="signal-bar"><div class="signal-fill" id="panel-signal"></div></div>
+            <span class="metric-value" id="panel-rssi">-70 dBm</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Environment Entries</span>
+            <span class="metric-value large" id="panel-visits">1</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Data Transmitted</span>
+            <span class="metric-value large" id="panel-bytes">0 B</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Packets</span>
+            <span class="metric-value large" id="panel-packets">0</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">TX Rate</span>
+            <span class="metric-value large" id="panel-rate">0 B/s</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Status</span>
+            <span class="metric-value" id="panel-status">Present</span>
+          </div>
+        </div>
+
+        <div class="visit-history">
+          <h3>Entry History</h3>
+          <ul id="panel-visits-list"></ul>
+        </div>
+      </aside>
+
+      <footer class="hud-footer">
+        <p>Click or tap a device to inspect transmission profile · Drag to orbit · Scroll to zoom</p>
+        <p class="dept">University Cyber Security Department</p>
+      </footer>
+
+      <div class="legend">
+        <span class="legend-item wifi"><span class="dot"></span> WiFi</span>
+        <span class="legend-item bluetooth"><span class="dot"></span> Bluetooth</span>
+        <span class="legend-item ble"><span class="dot"></span> BLE / IoT</span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
